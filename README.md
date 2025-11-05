@@ -1,47 +1,220 @@
-# Heimdall - Wormhole Configuration CLI
+# Heimdall - Wormhole Deployment CLI
 
-A command-line tool that helps you set up configuration files for deploying tokens across multiple blockchain networks using Wormhole.
+A beginner-friendly command-line tool for configuring multichain token deployments with Wormhole.
 
-## What does this do?
+## What is this?
 
-Before deploying your token to multiple blockchains (Ethereum, Base, Solana, etc.), you need to configure settings for each chain. This tool creates a `wormhole.config.json` file with all your deployment settings in the correct format.
+Heimdall helps you prepare configuration files before deploying tokens across multiple blockchains. Think of it as a setup wizard that asks you questions and creates a properly formatted `wormhole.config.json` file.
 
-**Important:** This tool only generates a config file. It does NOT deploy anything to the blockchain.
+**Note:** This tool only creates config files. It does NOT interact with blockchains or deploy anything on-chain.
 
-## Installation
+## Getting Started
+
+### Installation
 
 ```bash
 npm install
 npm link
 ```
 
-## Quick Start
+### Two Ways to Use Heimdall
 
-Run the interactive setup:
+Heimdall offers two modes to suit your workflow:
 
-```bash
-heimdall init
-```
+1. **Interactive Mode** (recommended for first-time users) - Guided prompts that walk you through each step
+2. **Non-Interactive Mode** (for scripts and automation) - Command-line flags to automate configuration
 
-Follow the prompts to:
+We'll start with interactive mode. If you need non-interactive mode for CI/CD or scripts, [skip to the advanced section](#advanced-non-interactive-mode).
 
-1. Choose your network (testnet recommended for first-time users)
-2. Select which blockchains you want to use
-3. Configure each blockchain's settings
+### Your First Configuration (Interactive Mode)
 
-The tool will create `wormhole.config.json` with your configuration.
-
-## Basic Commands
-
-### Initialize Configuration (Interactive)
+Run the following command to start the interactive setup:
 
 ```bash
 heimdall init
 ```
 
-The easiest way to get started. The tool will ask you questions and guide you through the setup.
+That's it! Heimdall will guide you through the entire setup process with a series of prompts.
 
-### Initialize Configuration (Non-Interactive)
+## Interactive Setup Guide
+
+When you run `heimdall init`, here's what to expect:
+
+### Step 1: Choose Your Network
+
+You'll be asked to select a network:
+
+- **Testnet** (recommended for testing)
+- **Mainnet** (for production deployments)
+- **Devnet** (for development)
+
+```
+? Select your preferred network:
+❯ testnet (recommended)
+  mainnet
+  devnet
+```
+
+### Step 2: Select Blockchains
+
+Choose which blockchains you want to deploy to (minimum 2 required):
+
+```
+? Select chains for deployment: (Space to select, Enter to continue)
+◯ ethereum
+◉ base
+◯ arbitrum
+◯ optimism
+◉ solana
+```
+
+**Tip:** Use the spacebar to select/deselect chains, then press Enter to continue.
+
+### Step 3: Choose Your Deployment Mode
+
+Select which chain will use LOCKING mode:
+
+```
+? Which chain will use LOCKING mode? (Others will use BURNING)
+❯ base
+  solana
+  None (all chains use BURNING)
+```
+
+**Important:** Only ONE chain can use LOCKING mode. All others must use BURNING.
+
+### Step 4: Configure Each Chain
+
+For each selected chain, you'll provide:
+
+#### RPC Endpoint (Optional)
+
+```
+RPC Endpoint: (default: https://sepolia.base.org)
+```
+
+Press Enter to use the default, or paste your custom RPC URL.
+
+#### Token Address (Required)
+
+```
+Token Address: (e.g., 0x1234...abcd)
+> 0x1234567890123456789012345678901234567890
+✓ Converted to Wormhole format: 0x000000000000000000000000123456...
+```
+
+Don't worry about the 32-byte format, Heimdall handles the conversion automatically!
+
+#### Private Key (Required)
+
+```
+BASE Private Key: ****
+✓ Will be stored as: ${BASE_PRIVATE_KEY}
+```
+
+Your private key is masked and will be saved as an environment variable reference (not in the config file).
+
+### Step 5: Review and Confirm
+
+```
+═══ Configuration Summary ═══
+
+Network: testnet
+Chains:
+  • base (LOCKING)
+  • solana (BURNING)
+
+? Does this look correct? (Y/n)
+```
+
+### Step 6: Done!
+
+After confirmation, Heimdall generates your config file and displays the export commands:
+
+```
+✓ Generated: wormhole.config.json
+
+⚠️  SECURITY NOTICE ⚠️
+Private keys are NOT stored in the config file.
+Please export these environment variables:
+
+export BASE_PRIVATE_KEY="0x1234567890abcdef..."
+export SOLANA_PRIVATE_KEY="5J7x8K9..."
+
+✓ Done! Your configuration is ready.
+```
+
+**Important:** Copy the `export` commands shown above and run them in your terminal. These set your private keys as environment variables so they're available when you use the config file, but never stored in it.
+
+---
+
+## Commands Reference
+
+### View Your Configuration
+
+```bash
+heimdall show
+```
+
+Displays your current configuration in a readable format.
+
+### Validate Your Configuration
+
+```bash
+heimdall validate
+```
+
+Checks your config file for errors and ensures all requirements are met.
+
+### Add a New Chain
+
+```bash
+heimdall add ethereum
+```
+
+Interactively add a new blockchain to your existing configuration.
+
+### Remove a Chain
+
+```bash
+heimdall remove ethereum
+```
+
+Remove a blockchain from your configuration.
+
+### Check Environment Variables
+
+```bash
+heimdall env-check
+```
+
+Verifies that all required private key environment variables are set.
+
+### Get Help
+
+```bash
+heimdall --help              # See all commands
+heimdall init --help         # Help for a specific command
+```
+
+---
+
+## Advanced: Non-Interactive Mode
+
+<details>
+<summary><b>Click to expand: Using command-line flags for automation</b></summary>
+
+<br>
+
+If you need to automate configuration creation or use Heimdall in scripts and CI/CD pipelines, you can bypass the interactive prompts by providing all options as command-line flags.
+
+### Basic Syntax
+
+```bash
+heimdall init <network> --chain <chain-name> [chain-options]
+```
+
+### Example: Configure 2 Chains
 
 ```bash
 heimdall init testnet \
@@ -55,69 +228,58 @@ heimdall init testnet \
   --solana-mode burning
 ```
 
-Useful for scripts and automation.
+### Available Options
 
-### View Current Configuration
+#### Global Options
 
-```bash
-heimdall show
-```
+- `--env <network>` or `-e <network>` — Network: mainnet, testnet, or devnet
+- `--chain <name>` — Add a chain (repeat for multiple chains)
+- `--force` or `-f` — Overwrite existing config file
 
-### Validate Configuration
+#### Per-Chain Options
 
-```bash
-heimdall validate
-```
+For each chain, use these flags (replace `<chain>` with ethereum, base, arbitrum, optimism, or solana):
 
-Checks if your config file is correct.
+- `--<chain>-rpc <url>` — RPC endpoint (optional, uses defaults)
+- `--<chain>-token <address>` — Token contract address (required)
+- `--<chain>-key <env-var-name>` — Environment variable name for private key (required)
+- `--<chain>-mode <mode>` — Deployment mode: locking or burning (default: burning)
 
-### Manage Chains
-
-```bash
-heimdall add ethereum      # Add a new chain
-heimdall remove ethereum   # Remove a chain
-```
-
-### Check Environment Variables
+### Example: 3 Chains with Custom RPCs
 
 ```bash
-heimdall env-check
+heimdall init mainnet \
+  --chain ethereum \
+  --ethereum-rpc https://eth.llamarpc.com \
+  --ethereum-token 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 \
+  --ethereum-key ETH_KEY \
+  --ethereum-mode burning \
+  --chain base \
+  --base-token 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 \
+  --base-key BASE_KEY \
+  --base-mode locking \
+  --chain arbitrum \
+  --arbitrum-token 0xaf88d065e77c8cC2239327C5EDb3A432268e5831 \
+  --arbitrum-key ARB_KEY \
+  --arbitrum-mode burning \
+  --force
 ```
 
-Verifies that all required environment variables are set.
+### Overwrite Existing Config
 
-## Supported Blockchains
-
-- Ethereum
-- Arbitrum
-- Optimism
-- Base
-- Solana
-
-## Understanding Modes
-
-When deploying tokens across chains, each chain operates in one of two modes:
-
-**BURNING Mode:** Tokens are burned on the source chain and minted on the destination chain.
-
-**LOCKING Mode:** Tokens are locked on the source chain and unlocked on the destination chain.
-
-**Rule:** Only ONE chain can use LOCKING mode. All others must use BURNING mode.
-
-## Security Notice
-
-Your private keys are **never stored** in the config file. Instead, the tool uses environment variable references.
-
-After creating a config, you'll need to export your private keys:
+Add `--force` to overwrite an existing `wormhole.config.json`:
 
 ```bash
-export BASE_PRIVATE_KEY="your_private_key_here"
-export SOLANA_PRIVATE_KEY="your_private_key_here"
+heimdall init testnet --chain base ... --force
 ```
 
-## Example Configuration
+</details>
 
-After running `heimdall init`, your `wormhole.config.json` will look like:
+---
+
+## Understanding Your Configuration
+
+After running `heimdall init`, your `wormhole.config.json` will look like this:
 
 ```json
 {
@@ -138,58 +300,6 @@ After running `heimdall init`, your `wormhole.config.json` will look like:
   }
 }
 ```
-
-Notice:
-
-- **Token addresses** are automatically converted to Wormhole's 32-byte format
-- **Private keys** are stored as environment variable references (`${VAR_NAME}`)
-- **Each chain** has its RPC endpoint, token address, and deployment mode
-
-## Help
-
-View all available commands:
-
-```bash
-heimdall --help
-```
-
-View help for a specific command:
-
-```bash
-heimdall init --help
-```
-
-## Common Issues
-
-**"Config file already exists"**  
-Use `--force` to overwrite: `heimdall init --force`
-
-**"Only ONE chain can use LOCKING mode"**  
-Make sure only one chain has LOCKING mode, all others should use BURNING.
-
-**"Invalid address format"**
-
-- Ethereum addresses: Must start with `0x` and have 40 hex characters  
-  Example: `0x1234567890123456789012345678901234567890`
-- Solana addresses: Base58 format, 32-44 characters  
-  Example: `DYw8jCTfwHNRJhhmFcbXvVDTqWMEVFBX6ZKUmG5CNSKQ`
-
-## What Happens to My Addresses?
-
-Ethereum-based addresses (20 bytes) are automatically converted to Wormhole's 32-byte format by padding with zeros:
-
-- **Input:** `0x1234567890123456789012345678901234567890`
-- **Output:** `0x0000000000000000000000001234567890123456789012345678901234567890`
-
-Solana addresses are already 32 bytes and don't need conversion.
-
-## Next Steps
-
-After creating your config file:
-
-1. ✅ Run `heimdall validate` to verify your configuration
-2. ✅ Run `heimdall env-check` to ensure environment variables are set
-3. ✅ Use the `wormhole.config.json` file for your deployment process
 
 ---
 
