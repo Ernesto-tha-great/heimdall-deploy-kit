@@ -28,13 +28,25 @@ We'll start with interactive mode. If you need non-interactive mode for CI/CD or
 
 ### Your First Configuration (Interactive Mode)
 
-Run the following command to start the interactive setup:
+**Step 1: Export Your Private Keys**
+
+Before running Heimdall, set your private keys as environment variables. This keeps them secure and out of your config files:
+
+```bash
+# For each chain you plan to use, export its private key:
+export BASE_PRIVATE_KEY="0x1234567890abcdef..."
+export SOLANA_PRIVATE_KEY="your_solana_private_key_here"
+export ETHEREUM_PRIVATE_KEY="0x..."
+# etc.
+```
+
+**Step 2: Run Heimdall**
 
 ```bash
 heimdall init
 ```
 
-That's it! Heimdall will guide you through the entire setup process with a series of prompts.
+That's it! Heimdall will guide you through the setup and automatically use the private keys from your environment variables (without ever printing or storing them).
 
 ## Interactive Setup Guide
 
@@ -105,14 +117,11 @@ Token Address: (e.g., 0x1234...abcd)
 
 Don't worry about the 32-byte format, Heimdall handles the conversion automatically!
 
-#### Private Key (Required)
+Heimdall automatically uses your private key from the `${CHAIN}_PRIVATE_KEY` environment variable you exported earlier.
 
 ```
-BASE Private Key: ****
-✓ Will be stored as: ${BASE_PRIVATE_KEY}
+✓ Using BASE_PRIVATE_KEY from environment
 ```
-
-Your private key is masked and will be saved as an environment variable reference (not in the config file).
 
 ### Step 5: Review and Confirm
 
@@ -129,22 +138,18 @@ Chains:
 
 ### Step 6: Done!
 
-After confirmation, Heimdall generates your config file and displays the export commands:
+After confirmation, Heimdall generates your config file:
 
 ```
 ✓ Generated: wormhole.config.json
 
-⚠️  SECURITY NOTICE ⚠️
-Private keys are NOT stored in the config file.
-Please export these environment variables:
-
-export BASE_PRIVATE_KEY="0x1234567890abcdef..."
-export SOLANA_PRIVATE_KEY="5J7x8K9..."
-
 ✓ Done! Your configuration is ready.
+
+Your private keys remain securely in environment variables.
+Run 'heimdall env-check' to verify all keys are set.
 ```
 
-**Important:** Copy the `export` commands shown above and run them in your terminal. These set your private keys as environment variables so they're available when you use the config file, but never stored in it.
+Your config file is ready to use! The private keys remain safely in your environment variables, never printed or stored in files.
 
 ---
 
@@ -274,6 +279,27 @@ heimdall init testnet --chain base ... --force
 ```
 
 </details>
+
+---
+
+## Security Model
+
+🔒 **Why export private keys before running Heimdall?**
+
+This approach ensures:
+
+- ✅ Private keys **never appear** in terminal output or logs
+- ✅ No risk of accidental copy-paste or screenshots exposing keys
+- ✅ Keys stay in environment variables, following industry best practices
+- ✅ Config files are safe to commit to version control
+
+To make your environment variables permanent, add them to your shell config (`~/.bashrc`, `~/.zshrc`, etc.):
+
+```bash
+# Add to ~/.zshrc or ~/.bashrc
+export BASE_PRIVATE_KEY="your_key_here"
+export SOLANA_PRIVATE_KEY="your_key_here"
+```
 
 ---
 

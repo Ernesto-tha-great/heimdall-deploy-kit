@@ -67,7 +67,6 @@ async function interactiveInit() {
   ]);
 
   const chains = {};
-  const envVars = {};
 
   for (const chain of selectedChains) {
     const mode = chain === lockingChain ? "locking" : "burning";
@@ -121,26 +120,31 @@ async function interactiveInit() {
       );
     }
 
-    const { privateKey } = await inquirer.prompt([
-      {
-        type: "password",
-        name: "privateKey",
-        message: `${chain.toUpperCase()} Private Key:`,
-        mask: "*",
-        validate: (input) => {
-          if (!input) return "Private key is required";
-          if (!isValidPrivateKey(input, chain)) {
-            return chain === "solana"
-              ? "Invalid Solana private key format"
-              : "Invalid Ethereum private key format (must be 64 hex characters)";
-          }
-          return true;
-        },
-      },
-    ]);
-
     const envVarName = `${chain.toUpperCase()}_PRIVATE_KEY`;
-    envVars[envVarName] = privateKey;
+    const privateKeyFromEnv = process.env[envVarName];
+
+    if (!privateKeyFromEnv) {
+      console.error(
+        chalk.red(
+          `\n✗ Environment variable ${envVarName} is not set.\n` +
+            `Please export your private key first:\n` +
+            chalk.cyan(`  export ${envVarName}="your_private_key_here"\n`)
+        )
+      );
+      process.exit(1);
+    }
+
+    if (!isValidPrivateKey(privateKeyFromEnv, chain)) {
+      console.error(
+        chalk.red(
+          `\n✗ Invalid private key format in ${envVarName}.\n` +
+            (chain === "solana"
+              ? "Solana private keys should be in Base58 format."
+              : "Ethereum private keys should be 64 hex characters (with or without 0x prefix).")
+        )
+      );
+      process.exit(1);
+    }
 
     chains[chain] = {
       rpc,
@@ -149,7 +153,7 @@ async function interactiveInit() {
       mode,
     };
 
-    console.log(chalk.green(`✓ Will be stored as: \${${envVarName}}`));
+    console.log(chalk.green(`✓ Using ${envVarName} from environment`));
   }
 
   console.log(chalk.bold.cyan("\n═══ Configuration Summary ═══\n"));
@@ -187,17 +191,15 @@ async function interactiveInit() {
   if (saveConfig(config)) {
     console.log(chalk.green(`\n✓ Generated: ${CONFIG_FILE}`));
 
-    console.log(chalk.bold.red("\n⚠️  SECURITY NOTICE ⚠️"));
+    console.log(chalk.green("\n✓ Done! Your configuration is ready."));
     console.log(
-      chalk.yellow("Private keys are NOT stored in the config file.")
+      chalk.cyan(
+        "\nYour private keys remain securely in environment variables."
+      )
     );
-    console.log(chalk.yellow("Please export these environment variables:\n"));
-
-    Object.entries(envVars).forEach(([name, value]) => {
-      console.log(chalk.cyan(`export ${name}="${value}"`));
-    });
-
-    console.log(chalk.green("\n✓ Done! Your configuration is ready.\n"));
+    console.log(
+      chalk.cyan("Run 'heimdall env-check' to verify all keys are set.\n")
+    );
   } else {
     console.error(chalk.red("\n❌ Failed to save configuration file."));
     process.exit(1);
@@ -330,16 +332,13 @@ function nonInteractiveInit(argv) {
   if (saveConfig(config)) {
     console.log(chalk.green(`✓ Generated: ${CONFIG_FILE}`));
 
-    console.log(chalk.bold.red("\n⚠️  SECURITY NOTICE ⚠️"));
+    console.log(chalk.green("\n✓ Configuration created successfully."));
     console.log(
-      chalk.yellow("Make sure these environment variables are set:\n")
+      chalk.cyan("Your private keys remain securely in environment variables.")
     );
-
-    envVarInstructions.forEach((envVar) => {
-      console.log(chalk.cyan(`export ${envVar}="your_private_key_here"`));
-    });
-
-    console.log(chalk.green("\n✓ Configuration created successfully.\n"));
+    console.log(
+      chalk.cyan("Run 'heimdall env-check' to verify all keys are set.\n")
+    );
   } else {
     process.exit(1);
   }
@@ -514,21 +513,6 @@ async function addChain(chainName) {
       },
     },
     {
-      type: "password",
-      name: "privateKey",
-      message: `${chainName.toUpperCase()} Private Key:`,
-      mask: "*",
-      validate: (input) => {
-        if (!input) return "Private key is required";
-        if (!isValidPrivateKey(input, chainName)) {
-          return chainName === "solana"
-            ? "Invalid Solana private key format"
-            : "Invalid Ethereum private key format";
-        }
-        return true;
-      },
-    },
-    {
       type: "list",
       name: "mode",
       message: "Select mode:",
@@ -541,6 +525,30 @@ async function addChain(chainName) {
     chainName
   );
   const envVarName = `${chainName.toUpperCase()}_PRIVATE_KEY`;
+  const privateKeyFromEnv = process.env[envVarName];
+
+  if (!privateKeyFromEnv) {
+    console.error(
+      chalk.red(
+        `\n✗ Environment variable ${envVarName} is not set.\n` +
+          `Please export your private key first:\n` +
+          chalk.cyan(`  export ${envVarName}="your_private_key_here"\n`)
+      )
+    );
+    process.exit(1);
+  }
+
+  if (!isValidPrivateKey(privateKeyFromEnv, chainName)) {
+    console.error(
+      chalk.red(
+        `\n✗ Invalid private key format in ${envVarName}.\n` +
+          (chainName === "solana"
+            ? "Solana private keys should be in Base58 format."
+            : "Ethereum private keys should be 64 hex characters (with or without 0x prefix).")
+      )
+    );
+    process.exit(1);
+  }
 
   config.chains[chainName] = {
     rpc: answers.rpc,
@@ -558,11 +566,7 @@ async function addChain(chainName) {
 
   if (saveConfig(config)) {
     console.log(chalk.green(`\n✓ Added ${chainName} to configuration`));
-    console.log(
-      chalk.yellow("\nDon't forget to set the environment variable:")
-    );
-    console.log(chalk.cyan(`export ${envVarName}="${answers.privateKey}"`));
-    console.log();
+    console.log(chalk.green(`✓ Using ${envVarName} from environment\n`));
   } else {
     process.exit(1);
   }
